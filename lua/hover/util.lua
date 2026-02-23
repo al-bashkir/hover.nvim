@@ -297,7 +297,12 @@ local function convert_html_to_markdown(contents)
       in_code_block = not in_code_block
     end
     if not in_code_block then
-      line = line:gsub('<code[^>]*>(.-)</code>', '`%1`')
+      line = line:gsub('<code[^>]*>(.-)</code>', function(inner)
+        -- Unescape markdown backslash escapes: <code> content is literal
+        -- text but LSP servers may have escaped punctuation for markdown.
+        inner = inner:gsub('\\([\\`*_{}%[%]()+#.!~|>-])', '%1')
+        return '`' .. inner .. '`'
+      end)
       line = line:gsub('<b[^>]*>(.-)</b>', '**%1**')
       line = line:gsub('<strong[^>]*>(.-)</strong>', '**%1**')
       line = line:gsub('<i[^>]*>(.-)</i>', '*%1*')
