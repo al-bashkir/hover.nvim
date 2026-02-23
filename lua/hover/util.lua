@@ -282,6 +282,36 @@ local function collapse_blank_lines(contents)
   return collapsed
 end
 
+--- Convert common HTML inline tags to their Markdown equivalents.
+--- Some LSP servers (e.g. ansible-language-server) return documentation
+--- with raw HTML tags that would otherwise render as literal text.
+--- Lines inside fenced code blocks are left untouched.
+---@private
+---@param contents string[]
+---@return string[]
+local function convert_html_to_markdown(contents)
+  local result = {}
+  local in_code_block = false
+  for _, line in ipairs(contents) do
+    if line:match('^```') then
+      in_code_block = not in_code_block
+    end
+    if not in_code_block then
+      line = line:gsub('<code[^>]*>(.-)</code>', '`%1`')
+      line = line:gsub('<b[^>]*>(.-)</b>', '**%1**')
+      line = line:gsub('<strong[^>]*>(.-)</strong>', '**%1**')
+      line = line:gsub('<i[^>]*>(.-)</i>', '*%1*')
+      line = line:gsub('<em[^>]*>(.-)</em>', '*%1*')
+      line = line:gsub('<a%s+href%s*=%s*"([^"]*)"[^>]*>(.-)</a>', '[%2](%1)')
+      line = line:gsub("<a%s+href%s*=%s*'([^']*)'[^>]*>(.-)</a>", '[%2](%1)')
+      line = line:gsub('<br%s*/?>', '')
+      line = line:gsub('</?p[^>]*>', '')
+    end
+    result[#result + 1] = line
+  end
+  return result
+end
+
 --- Normalizes Markdown input to a canonical form.
 --- (Implementation taken from 'vim.lsp.util._normalize_markdown'.)
 ---
@@ -351,6 +381,7 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
       -- applies the syntax and sets the lines to the buffer
       local width, _ = make_floating_popup_size(contents, opts)
       contents = normalize_markdown(contents, { width = width })
+      contents = convert_html_to_markdown(contents)
       api.nvim_buf_set_lines(floating_bufnr, 0, -1, false, contents)
     else
       if syntax then
