@@ -361,6 +361,8 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
       local ro = vim.bo[floating_bufnr].readonly
       vim.bo[floating_bufnr].modifiable = true
       vim.bo[floating_bufnr].readonly = false
+      -- Flatten embedded newlines so nvim_buf_set_lines doesn't error
+      contents = vim.split(table.concat(contents, '\n'), '\n')
       api.nvim_buf_set_lines(floating_bufnr, 0, -1, true, contents)
       vim.bo[floating_bufnr].modifiable = m
       vim.bo[floating_bufnr].readonly = ro
