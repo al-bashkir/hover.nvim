@@ -83,6 +83,15 @@ local function add_provider(provider, mod, group)
   table.insert(M.providers, provider)
 end
 
+
+--- Dynamically add a provider after init (e.g. from LspAttach).
+--- @param provider Hover.Provider.Resolved
+--- @param mod string
+--- @param group? Hover.ProviderGroup
+function M.add(provider, mod, group)
+  add_provider(provider, mod, group)
+end
+
 --- @param provider_or_group Hover.Provider|Hover.ProviderGroup
 --- @param module string
 local function add_provider_or_group(provider_or_group, module)
