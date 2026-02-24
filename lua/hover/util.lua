@@ -311,6 +311,10 @@ local function convert_html_to_markdown(contents)
       line = line:gsub("<a%s+href%s*=%s*'([^']*)'[^>]*>(.-)</a>", '[%2](%1)')
       line = line:gsub('<br%s*/?>', '')
       line = line:gsub('</?p[^>]*>', '')
+      -- Strip markdown backslash escapes (e.g. \. \( \= -> . ( =).
+      -- LSP documentation generators escape punctuation globally;
+      -- in rendered hover output these should display without the backslash.
+      line = line:gsub('\\(%p)', '%1')
     end
     result[#result + 1] = line
   end
