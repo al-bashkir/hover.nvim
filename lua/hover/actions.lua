@@ -265,7 +265,7 @@ function M.open(opts)
     for _, provider in ipairs(providers) do
       async.scheduler()
       if use_provider and run_provider(provider, providers, bufnr, opts) then
-        break
+        return
       end
       if provider.id == current_provider_id then
         use_provider = true
@@ -275,7 +275,7 @@ function M.open(opts)
     for _, provider in ipairs(providers) do
       async.scheduler()
       if run_provider(provider, providers, bufnr, opts) then
-        break
+        return
       end
     end
   end)
