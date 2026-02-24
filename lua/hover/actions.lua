@@ -350,12 +350,12 @@ function M.mouse()
 
       local pos = vim.fn.getmousepos()
       if pos.winid == 0 then
-        break
+        return
       end
 
       local buf = vim.fn.winbufnr(pos.winid)
       if buf == -1 then
-        break
+        return
       end
 
       M.close(buf)
