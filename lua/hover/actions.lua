@@ -189,7 +189,7 @@ local function run_provider(provider, providers, bufnr, popts)
 
   if opts.focusable ~= false and opts.focus ~= false then
     if do_hover() then
-      break false
+      return false
     end
   end
 
@@ -200,7 +200,13 @@ local function run_provider(provider, providers, bufnr, popts)
   local result = async.await(2, provider.execute, {
     bufnr = bufnr,
     pos = popts.pos or api.nvim_win_get_cursor(0),
-  }) or { lines = { 'No result' } }
+  })
+
+  if result == false then
+    return false
+  end
+
+  result = result or { lines = { 'No result' } }
 
   async.scheduler()
   show_hover(provider.id, providers, config, result, opts)
@@ -278,6 +284,7 @@ end
 --- @param direction 'previous'|'next'
 --- @param opts? Hover.Options
 function M.switch(direction, opts)
+  init()
   direction = direction or 'next'
   opts = opts or {}
   local bufnr = api.nvim_get_current_buf()
