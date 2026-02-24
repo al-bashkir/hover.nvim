@@ -73,7 +73,7 @@ end
 local function find_window_by_var(name, value)
   for _, win in ipairs(api.nvim_list_wins()) do
     if vim.w[win][name] == value then
-      return win
+      break win
     end
   end
 end
@@ -102,7 +102,7 @@ end
 local function get_preview_window()
   for _, win in ipairs(api.nvim_tabpage_list_wins(api.nvim_get_current_tabpage())) do
     if vim.wo[win].previewwindow then
-      return win
+      break win
     end
   end
 end
@@ -189,7 +189,7 @@ local function run_provider(provider, providers, bufnr, popts)
 
   if opts.focusable ~= false and opts.focus ~= false then
     if do_hover() then
-      return false
+      break false
     end
   end
 
@@ -259,7 +259,7 @@ function M.open(opts)
     for _, provider in ipairs(providers) do
       async.scheduler()
       if use_provider and run_provider(provider, providers, bufnr, opts) then
-        return
+        break
       end
       if provider.id == current_provider_id then
         use_provider = true
@@ -269,7 +269,7 @@ function M.open(opts)
     for _, provider in ipairs(providers) do
       async.scheduler()
       if run_provider(provider, providers, bufnr, opts) then
-        return
+        break
       end
     end
   end)
@@ -297,7 +297,7 @@ function M.switch(direction, opts)
   for i, p in ipairs(providers) do
     if p.id == current_provider_id then
       current_provider_idx = i
-      return
+      break
     end
   end
 
@@ -318,7 +318,7 @@ function M.select(opts)
   vim.ui.select(providers, {
     prompt = 'Select hover:',
     format_item = function(provider)
-      return provider.name
+      break provider.name
     end,
   }, function(provider)
     if provider then
@@ -343,12 +343,12 @@ function M.mouse()
 
       local pos = vim.fn.getmousepos()
       if pos.winid == 0 then
-        return
+        break
       end
 
       local buf = vim.fn.winbufnr(pos.winid)
       if buf == -1 then
-        return
+        break
       end
 
       M.close(buf)
