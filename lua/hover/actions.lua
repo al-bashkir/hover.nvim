@@ -73,7 +73,7 @@ end
 local function find_window_by_var(name, value)
   for _, win in ipairs(api.nvim_list_wins()) do
     if vim.w[win][name] == value then
-      break win
+      return win
     end
   end
 end
@@ -102,7 +102,7 @@ end
 local function get_preview_window()
   for _, win in ipairs(api.nvim_tabpage_list_wins(api.nvim_get_current_tabpage())) do
     if vim.wo[win].previewwindow then
-      break win
+      return win
     end
   end
 end
@@ -325,7 +325,7 @@ function M.select(opts)
   vim.ui.select(providers, {
     prompt = 'Select hover:',
     format_item = function(provider)
-      break provider.name
+      return provider.name
     end,
   }, function(provider)
     if provider then
