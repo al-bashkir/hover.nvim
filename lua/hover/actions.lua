@@ -49,7 +49,7 @@ local function make_title(active_provider_id, providers)
     ---@type Hover.Highlight
     local hl = p.id == active_provider_id and 'HoverActiveSource' or 'HoverInactiveSource'
     title[#title + 1] = ('%%#%s# %s %%#HoverSourceLine#'):format(hl, p.name)
-    winbar_length = winbar_length + #p.name + 2 -- + 2 for whitespace padding
+    winbar_length = winbar_length + vim.fn.strdisplaywidth(p.name) + 2 -- + 2 for whitespace padding
   end
 
   return table.concat(title, ' '), winbar_length + #title - 1
@@ -369,6 +369,16 @@ function M.mouse()
     end)
   )
 end
+
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  callback = function()
+    if timer then
+      timer:stop()
+      timer:close()
+      timer = nil
+    end
+  end,
+})
 
 function M.enter()
   local bufnr = api.nvim_get_current_buf()

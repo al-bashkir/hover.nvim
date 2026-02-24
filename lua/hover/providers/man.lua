@@ -6,11 +6,19 @@ return {
   priority = 150,
   enabled = function(bufnr)
     return vim.tbl_contains({
+      'awk',
+      'bash',
       'c',
-      'sh',
-      'zsh',
-      'tcl',
+      'cmake',
       'make',
+      'perl',
+      'python',
+      'ruby',
+      'sed',
+      'sh',
+      'tcl',
+      'tcsh',
+      'zsh',
     }, vim.bo[bufnr].filetype)
   end,
   execute = function(params, done)
