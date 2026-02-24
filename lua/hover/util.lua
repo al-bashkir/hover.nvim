@@ -452,6 +452,36 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
     vim.wo[hover_winid].concealcursor = 'n'
     vim.bo[floating_bufnr].filetype = 'markdown'
     vim.treesitter.start(floating_bufnr)
+    -- Conceal the backslash in escape sequences (e.g. \. -> .)
+    -- Applied via extmarks because query extensions from lazy-loaded
+    -- plugins are not picked up by the treesitter query cache.
+    vim.schedule(function()
+      if not api.nvim_buf_is_valid(floating_bufnr) then
+        return
+      end
+      local ok, parser = pcall(vim.treesitter.get_parser, floating_bufnr, 'markdown')
+      if not ok or not parser then
+        return
+      end
+      local query_ok, query = pcall(vim.treesitter.query.parse, 'markdown_inline', '((backslash_escape) @escape)')
+      if not query_ok then
+        return
+      end
+      local ns = api.nvim_create_namespace('hover_escape_conceal')
+      parser:for_each_tree(function(tstree, ltree)
+        if ltree:lang() ~= 'markdown_inline' then
+          return
+        end
+        for _, node in query:iter_captures(tstree:root(), floating_bufnr) do
+          local sr, sc = node:range()
+          api.nvim_buf_set_extmark(floating_bufnr, ns, sr, sc, {
+            end_row = sr,
+            end_col = sc + 1,
+            conceal = '',
+          })
+        end
+      end)
+    end)
   end
 
   return hover_winid
