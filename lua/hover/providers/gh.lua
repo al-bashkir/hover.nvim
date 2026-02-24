@@ -70,8 +70,6 @@ local function execute(_params, done)
   async.run(function()
     local bufnr = api.nvim_get_current_buf()
     local cwd = fn.fnamemodify(api.nvim_buf_get_name(bufnr), ':p:h')
-    local id = fn.expand('<cword>')
-
     local word = fn.expand('<cWORD>')
 
     local obj --- @type vim.SystemCompleted
@@ -99,7 +97,7 @@ local function execute(_params, done)
           'view',
           '--json',
           fields,
-          id,
+          num,
         }, { cwd = cwd })
       else
         done(false)
