@@ -282,6 +282,47 @@ local function collapse_blank_lines(contents)
   return collapsed
 end
 
+--- Convert common HTML inline tags to their Markdown equivalents.
+--- Some LSP servers (e.g. ansible-language-server) return documentation
+--- with raw HTML tags that would otherwise render as literal text.
+--- Lines inside fenced code blocks are left untouched.
+---@private
+---@param contents string[]
+---@return string[]
+local function convert_html_to_markdown(contents)
+  local result = {}
+  local in_code_block = false
+  for _, line in ipairs(contents) do
+    if line:match('^```') then
+      in_code_block = not in_code_block
+    end
+    if not in_code_block then
+      line = line:gsub('<code[^>]*>(.-)</code>', function(inner)
+        -- Strip nested HTML tags: <code><b>name</b></code> -> `name`
+        inner = inner:gsub('</?[%w][^>]*>', '')
+        -- Unescape markdown backslash escapes: <code> content is literal
+        -- text but LSP servers may have escaped punctuation for markdown.
+        inner = inner:gsub('\\([\\`*_{}%[%]()+#.!~|>-])', '%1')
+        return '`' .. inner .. '`'
+      end)
+      line = line:gsub('<b[^>]*>(.-)</b>', '**%1**')
+      line = line:gsub('<strong[^>]*>(.-)</strong>', '**%1**')
+      line = line:gsub('<i[^>]*>(.-)</i>', '*%1*')
+      line = line:gsub('<em[^>]*>(.-)</em>', '*%1*')
+      line = line:gsub('<a%s+href%s*=%s*"([^"]*)"[^>]*>(.-)</a>', '[%2](%1)')
+      line = line:gsub("<a%s+href%s*=%s*'([^']*)'[^>]*>(.-)</a>", '[%2](%1)')
+      line = line:gsub('<br%s*/?>', '')
+      line = line:gsub('</?p[^>]*>', '')
+      -- Strip markdown backslash escapes (e.g. \. \( \= -> . ( =).
+      -- LSP documentation generators escape punctuation globally;
+      -- in rendered hover output these should display without the backslash.
+      line = line:gsub('\\(%p)', '%1')
+    end
+    result[#result + 1] = line
+  end
+  return result
+end
+
 --- Normalizes Markdown input to a canonical form.
 --- (Implementation taken from 'vim.lsp.util._normalize_markdown'.)
 ---
@@ -351,6 +392,7 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
       -- applies the syntax and sets the lines to the buffer
       local width, _ = make_floating_popup_size(contents, opts)
       contents = normalize_markdown(contents, { width = width })
+      contents = convert_html_to_markdown(contents)
       api.nvim_buf_set_lines(floating_bufnr, 0, -1, false, contents)
     else
       if syntax then
@@ -361,6 +403,8 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
       local ro = vim.bo[floating_bufnr].readonly
       vim.bo[floating_bufnr].modifiable = true
       vim.bo[floating_bufnr].readonly = false
+      -- Flatten embedded newlines so nvim_buf_set_lines doesn't error
+      contents = vim.split(table.concat(contents, '\n'), '\n')
       api.nvim_buf_set_lines(floating_bufnr, 0, -1, true, contents)
       vim.bo[floating_bufnr].modifiable = m
       vim.bo[floating_bufnr].readonly = ro
@@ -414,6 +458,36 @@ function M.open_floating_preview(contents, bufnr, syntax, opts)
     vim.wo[hover_winid].concealcursor = 'n'
     vim.bo[floating_bufnr].filetype = 'markdown'
     vim.treesitter.start(floating_bufnr)
+    -- Conceal the backslash in escape sequences (e.g. \. -> .)
+    -- Applied via extmarks because query extensions from lazy-loaded
+    -- plugins are not picked up by the treesitter query cache.
+    vim.schedule(function()
+      if not api.nvim_buf_is_valid(floating_bufnr) then
+        return
+      end
+      local ok, parser = pcall(vim.treesitter.get_parser, floating_bufnr, 'markdown')
+      if not ok or not parser then
+        return
+      end
+      local query_ok, query = pcall(vim.treesitter.query.parse, 'markdown_inline', '((backslash_escape) @escape)')
+      if not query_ok then
+        return
+      end
+      local ns = api.nvim_create_namespace('hover_escape_conceal')
+      parser:for_each_tree(function(tstree, ltree)
+        if ltree:lang() ~= 'markdown_inline' then
+          return
+        end
+        for _, node in query:iter_captures(tstree:root(), floating_bufnr) do
+          local sr, sc = node:range()
+          api.nvim_buf_set_extmark(floating_bufnr, ns, sr, sc, {
+            end_row = sr,
+            end_col = sc + 1,
+            conceal = '',
+          })
+        end
+      end)
+    end)
   end
 
   return hover_winid

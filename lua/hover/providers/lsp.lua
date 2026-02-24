@@ -95,6 +95,16 @@ api.nvim_create_autocmd('LspAttach', {
     if not lsp_providers[client_id] then
       local client = assert(lsp.get_client_by_id(client_id))
       register_lsp_provider(client)
+      -- Propagate late-registered providers to hover.providers.M.providers
+      -- so get_providers() can see them. Use package.loaded to avoid
+      -- prematurely loading hover.providers before hover.nvim initializes.
+      local p = lsp_providers[client_id]
+      if p and not p.id then
+        local hp = package.loaded['hover.providers']
+        if hp and hp.add then
+          hp.add(p, 'hover.providers.lsp', { name = 'LSP', priority = 1000 })
+        end
+      end
     end
   end,
 })
