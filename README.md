@@ -153,15 +153,20 @@ Module: `hover.providers.endec`
 Priority: 200
 
 Decode Base64 and Base64URL encoded strings under the cursor.
-Uses treesitter to detect string nodes, then attempts to decode
-the content and display it in the hover popup.
+Uses treesitter to find recognized string node types (quoted strings,
+YAML scalars, etc.), then attempts to decode the content and display
+it in the hover popup. Only triggers when the decoded result is
+printable UTF-8 text.
 
 Supports:
 - Standard Base64 ([RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4))
-- Base64URL ([RFC 4648 section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) - auto-detected
-- Multi-line strings (treesitter multi-line string nodes)
+- Base64URL ([RFC 4648 section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) - auto-detected by `-`/`_` chars
+- Language-specific string syntax: Python prefixed strings (`b"..."`, `r"..."`),
+  Rust raw strings (`r#"..."#`), Lua long strings (`[=[...]=]`), backtick literals
 
 Requires a treesitter parser for the current buffer's filetype.
+Only single-line string content is supported.
+Does not trigger on bare unquoted text outside of string nodes.
 
 ### Github: Issues and PR's
 
