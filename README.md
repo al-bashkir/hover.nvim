@@ -38,6 +38,7 @@ require('hover').config({
     'hover.providers.man',
     'hover.providers.dictionary',
     -- Optional, disabled by default:
+    -- 'hover.providers.endec',
     -- 'hover.providers.gh',
     -- 'hover.providers.gh_user',
     -- 'hover.providers.jira',
@@ -145,6 +146,22 @@ Module: `hover.providers.fold_preview`
 Priority: 1003
 
 Preview closed fold under cursor
+
+### Endec (Base64 / Base64URL)
+
+Module: `hover.providers.endec`
+Priority: 200
+
+Decode Base64 and Base64URL encoded strings under the cursor.
+Uses treesitter to detect string nodes, then attempts to decode
+the content and display it in the hover popup.
+
+Supports:
+- Standard Base64 ([RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4))
+- Base64URL ([RFC 4648 section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) - auto-detected
+- Multi-line strings (treesitter multi-line string nodes)
+
+Requires a treesitter parser for the current buffer's filetype.
 
 ### Github: Issues and PR's
 
