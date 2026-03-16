@@ -301,7 +301,47 @@ end
 --- @field encoding_name string?
 local cache = {} --- @type Hover.provider.endec.Cache
 
+--- Extract the contiguous run of base64-like characters surrounding
+--- the given position on a buffer line. Used as a fallback when the
+--- full treesitter string node contains non-base64 characters (e.g.
+--- space-separated base64 values in a single YAML string).
+--- @param bufnr integer
+--- @param row integer 0-indexed
+--- @param col integer 0-indexed
+--- @return string?
+local function extract_word_at_pos(bufnr, row, col)
+  local lines = api.nvim_buf_get_lines(bufnr, row, row + 1, false)
+  if not lines[1] then
+    return nil
+  end
+  local line = lines[1]
+  local pos = col + 1 -- 1-indexed for string operations
+
+  -- Check the character at cursor is a base64-valid char
+  if pos > #line or not line:sub(pos, pos):match('[A-Za-z0-9+/=_-]') then
+    return nil
+  end
+
+  -- Expand left
+  local left = pos
+  while left > 1 and line:sub(left - 1, left - 1):match('[A-Za-z0-9+/=_-]') do
+    left = left - 1
+  end
+
+  -- Expand right
+  local right = pos
+  while right < #line and line:sub(right + 1, right + 1):match('[A-Za-z0-9+/=_-]') do
+    right = right + 1
+  end
+
+  return line:sub(left, right)
+end
+
 --- Attempt to decode base64 content at the cursor position.
+--- First tries the full treesitter string node text. If that doesn't
+--- decode (e.g. contains spaces between multiple base64 values), falls
+--- back to extracting the base64-like word at the cursor position.
+--- The fallback only triggers when inside a treesitter string node.
 --- Results are cached by (bufnr, position, changedtick) so that
 --- execute() reuses the decode result computed during enabled().
 --- @param bufnr integer
@@ -323,8 +363,21 @@ local function decode_at_cursor(bufnr, pos)
   local decoded, encoding_name
 
   local text = find_string_at_cursor(bufnr, pos[1] - 1, pos[2])
-  if text and not text:find('\n') and #text <= MAX_DECODE_LENGTH and is_base64_like(text) then
-    decoded, encoding_name = try_decode(text)
+  if text and not text:find('\n') then
+    -- Try full string node text first
+    if #text <= MAX_DECODE_LENGTH and is_base64_like(text) then
+      decoded, encoding_name = try_decode(text)
+    end
+
+    -- If full string didn't decode, try the word at cursor position.
+    -- This handles space-separated base64 values within a single string node
+    -- (e.g. YAML values like "dG9rZW4= cmVkaXMuaG9zdA==").
+    if not decoded then
+      local word = extract_word_at_pos(bufnr, pos[1] - 1, pos[2])
+      if word and #word <= MAX_DECODE_LENGTH and is_base64_like(word) then
+        decoded, encoding_name = try_decode(word)
+      end
+    end
   end
 
   cache = {
