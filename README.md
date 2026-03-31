@@ -80,6 +80,13 @@ vim.keymap.set('n', '<MouseMove>', function()
   require('hover').mouse()
 end, { desc = 'hover.nvim (mouse)' })
 
+vim.keymap.set('n', '<leader>K', function()
+  require('hover').select()
+end, { desc = 'hover.nvim (select source)' })
+
+-- Optional: close hover window programmatically
+-- require('hover').close()
+
 vim.o.mousemoveevent = true
 ```
 
@@ -124,7 +131,7 @@ require('hover').config({
 Module: `hover.providers.lsp`
 Priority: 1000
 
-Builtin LSP. Suppors multiple clients.
+Builtin LSP. Supports multiple clients.
 
 ### Diagnostics
 

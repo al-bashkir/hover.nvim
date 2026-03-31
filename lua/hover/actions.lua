@@ -49,7 +49,7 @@ local function make_title(active_provider_id, providers)
     ---@type Hover.Highlight
     local hl = p.id == active_provider_id and 'HoverActiveSource' or 'HoverInactiveSource'
     title[#title + 1] = ('%%#%s# %s %%#HoverSourceLine#'):format(hl, p.name)
-    winbar_length = winbar_length + #p.name + 2 -- + 2 for whitespace padding
+    winbar_length = winbar_length + vim.fn.strdisplaywidth(p.name) + 2 -- + 2 for whitespace padding
   end
 
   return table.concat(title, ' '), winbar_length + #title - 1
@@ -200,7 +200,13 @@ local function run_provider(provider, providers, bufnr, popts)
   local result = async.await(2, provider.execute, {
     bufnr = bufnr,
     pos = popts.pos or api.nvim_win_get_cursor(0),
-  }) or { lines = { 'No result' } }
+  })
+
+  if result == false then
+    return false
+  end
+
+  result = result or { lines = { 'No result' } }
 
   async.scheduler()
   show_hover(provider.id, providers, config, result, opts)
@@ -278,6 +284,7 @@ end
 --- @param direction 'previous'|'next'
 --- @param opts? Hover.Options
 function M.switch(direction, opts)
+  init()
   direction = direction or 'next'
   opts = opts or {}
   local bufnr = api.nvim_get_current_buf()
@@ -297,7 +304,7 @@ function M.switch(direction, opts)
   for i, p in ipairs(providers) do
     if p.id == current_provider_id then
       current_provider_idx = i
-      return
+      break
     end
   end
 
@@ -362,6 +369,16 @@ function M.mouse()
     end)
   )
 end
+
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  callback = function()
+    if timer then
+      timer:stop()
+      timer:close()
+      timer = nil
+    end
+  end,
+})
 
 function M.enter()
   local bufnr = api.nvim_get_current_buf()

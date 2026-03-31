@@ -107,7 +107,7 @@ local function execute(params, done)
   end
 
   local buffer = vim.api.nvim_create_buf(false, true)
-  local ns = vim.api.nvim_create_namespace('')
+  local ns = vim.api.nvim_create_namespace('hover.highlight')
 
   vim.api.nvim_buf_set_lines(buffer, -1, -1, true, lines)
   for _, hl in ipairs(hls) do

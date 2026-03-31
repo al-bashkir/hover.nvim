@@ -80,6 +80,7 @@ local function execute(_params, done)
   local user = get_user()
   if not user then
     done(false)
+    return
   end
 
   vim.system({ 'gh', 'api', 'users/' .. user }, { cwd = cwd }, function(out)

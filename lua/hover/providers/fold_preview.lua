@@ -1,8 +1,6 @@
 local fn = vim.fn
 local api = vim.api
 
-local config = require('hover.config').get()
-
 local border_shift = {} --- @type [integer, integer, integer, integer]
 
 local function set_border_shift(border)
@@ -27,11 +25,10 @@ local function set_border_shift(border)
   error('Invalid border type or value')
 end
 
-set_border_shift(config.preview_opts.border)
-
 --- @param params Hover.Provider.Params
 --- @param done fun(result?: Hover.Provider.Result)
 local function execute(params, done)
+  set_border_shift(require('hover.config').get().preview_opts.border)
   local cur_bufnr = params.bufnr
   local cur_pos = params.pos
   local cur_line = cur_pos[1]

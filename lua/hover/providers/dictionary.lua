@@ -95,8 +95,7 @@ local cache = {} --- @type table<string,string[]>
 --- @param cmd string[]
 --- @param cb fun(out: vim.SystemCompleted)
 local function system(cmd, cb)
-  --- @diagnostic disable-next-line: param-type-not-match
-  vim.system(cmd, cb)
+  vim.system(cmd, nil, cb)
 end
 
 --- @param _params Hover.Provider.Params
